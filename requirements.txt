@@ -1,0 +1,5 @@
+# 最小RAGの依存はこの2つだけ（どちらも純Python、Python 3.14.x でも wheel 問題なし）。
+# numpy / torch / sentence-transformers / langchain などは「隠蔽を避ける」ため意図的に入れない。
+anthropic       # 生成（Claude Messages API）用の公式SDK
+requests        # 埋め込み（Voyage AI REST）を直接叩く用
+python-dotenv   # .env から API キーを読む用
