@@ -1,0 +1,15 @@
+[project]
+name = "rag-lab"
+version = "0.1.0"
+description = "RAGの学習用リポジトリ"
+requires-python = "==3.14.*"
+dependencies = [
+    "anthropic",     # 生成（Claude Messages API）用の公式SDK
+    "requests",      # 埋め込み（Voyage AI REST）を直接叩く用
+    "python-dotenv", # .env から API キーを読む用
+]
+
+# このリポジトリはスクリプト集であり配布パッケージではない。
+# uv にプロジェクト自体のビルド/インストールをさせず、依存だけ .venv に入れる。
+[tool.uv]
+package = false
