@@ -6,6 +6,46 @@
 同一の評価セットでの再測定によってその有効性を検証する。
 プロダクト化（認証/多テナント/監視）はスコープ外。
 
+## セットアップ
+
+依存は [uv](https://docs.astral.sh/uv/) で管理する（ルートとは独立した uv プロジェクト）。
+
+```bash
+cd garbage-disposal-rag
+uv sync     # .venv を作成し依存を導入（初回は torch / e5 等で時間・帯域を要する）
+```
+
+生成（`call_llm`）は Anthropic を使う。APIキーはコードに書かず、リポジトリ直下の
+`.env` から読む（`load_dotenv`。`export` 不要）:
+
+```bash
+# rag-lab/.env に記入（既にあれば追記不要）
+ANTHROPIC_API_KEY=...
+```
+
+> モデルは既定 `claude-haiku-4-5`。`OTA_LLM_MODEL` 環境変数で上書きできる。
+
+### 疎通確認（Phase 1）
+
+```bash
+uv run python test.py          # 埋め込み + LLM の両方
+uv run python test.py embed    # 埋め込みのみ（初回は e5 モデルDL）
+uv run python test.py llm      # LLM（Claude）のみ
+```
+
+- 埋め込み: cos類似度行列を出力し「粗大⇄大型 > 粗大⇄可燃収集日」なら OK
+- LLM: `call_llm("test")` が非空テキストを返せば OK
+
+### パイプライン（後続フェーズ）
+
+```bash
+uv run python rag.py ingest          # HTML取得→チャンク→埋め込み→ota_index.npz
+uv run python rag.py eval            # 内蔵ゴールドセットで retrieval/棄却を確認
+uv run python rag.py ask "粗大ごみの申込方法は?"
+```
+
+> 注: `ingest` / `eval` / `ask` は索引 `ota_index.npz` を前提とする（Phase 1 では未生成）。
+
 ## Definition of Done（全項目が二値で「済」になったら完了）
 
 ### 0. タイムボックス（着手前に確定）

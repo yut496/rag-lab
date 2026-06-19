@@ -13,11 +13,11 @@
   3. 棄却 (abstention) を一級市民として実装。確信度が低ければ答えない。
   4. 出典URL + last_verified を必ず回答に添える (改定が頻繁なドメイン)。
 
-実行 (あなたの環境で):
-  pip install requests beautifulsoup4 sentence-transformers numpy
-  python ota_gomi_rag.py ingest    # HTML取得→チャンク→埋め込み→ota_index.npz
-  python ota_gomi_rag.py eval      # 内蔵ゴールドセットで groundedness/棄却 を確認
-  python ota_gomi_rag.py ask "粗大ごみの申込方法は?"
+実行 (あなたの環境で / uv プロジェクト):
+  uv sync                                 # 依存を .venv に導入
+  uv run python rag.py ingest    # HTML取得→チャンク→埋め込み→ota_index.npz
+  uv run python rag.py eval      # 内蔵ゴールドセットで groundedness/棄却 を確認
+  uv run python rag.py ask "粗大ごみの申込方法は?"
 
 Cloudflare移植:
   埋め込み -> Workers AI (@cf/baai/bge-m3) / 索引 -> Vectorize / メタdata -> D1 / 推論 -> Workers AI or Anthropic API。
@@ -26,6 +26,12 @@ Cloudflare移植:
 
 import sys, re, json, time, os
 from dataclasses import dataclass, asdict
+
+import anthropic
+import numpy as np
+import requests
+from bs4 import BeautifulSoup
+from sentence_transformers import SentenceTransformer
 
 # ---- コーパス: 大田区サイトのHTMLページ (ルール解説のみ) -------------------
 # category はルーティングと出典表示に使う。収集日ページは「タイミング規則」部分のみ採用。
@@ -48,6 +54,7 @@ INDEX_PATH = "ota_index.npz"
 MAX_CHARS = 700          # セクションが長い場合の分割上限
 SCORE_FLOOR = 0.78       # これ未満なら棄却 (e5正規化cos。要校正)
 TOP_K = 4
+LLM_MODEL = os.environ.get("OTA_LLM_MODEL", "claude-haiku-4-5")  # 生成モデル(安価なPoC既定)
 
 # ---- 境界ルーター: スコープ外クエリを入口で弾く ----------------------------
 ITEM_CLASSIFY_PAT = re.compile(r"(は何ごみ|は何ゴミ|何ごみ\?|何ゴミ\?|どのごみ|どう捨て|捨て方は\s*$)")
@@ -75,8 +82,6 @@ class Chunk:
     last_verified: str
 
 def fetch_and_chunk():
-    import requests
-    from bs4 import BeautifulSoup
     today = time.strftime("%Y-%m-%d")
     chunks = []
     for category, url in SOURCES:
@@ -128,8 +133,6 @@ def embed(texts, model, kind):
     return model.encode([prefix + t for t in texts], normalize_embeddings=True)
 
 def ingest():
-    import numpy as np
-    from sentence_transformers import SentenceTransformer
     chunks = fetch_and_chunk()
     model = SentenceTransformer(EMB_MODEL)
     vecs = embed([c.text for c in chunks], model, "passage")
@@ -140,12 +143,10 @@ def ingest():
 
 # ---- 検索 + 棄却 + 回答 ----------------------------------------------------
 def load_index():
-    import numpy as np
     d = np.load(INDEX_PATH, allow_pickle=True)
     return d["vecs"], json.loads(str(d["meta"]))
 
 def retrieve(query, model, vecs, meta):
-    import numpy as np
     q = embed([query], model, "query")[0]
     scores = vecs @ q
     idx = np.argsort(-scores)[:TOP_K]
@@ -165,13 +166,21 @@ def build_prompt(query, hits):
     )
 
 def call_llm(prompt: str) -> str:
-    """プロバイダ非依存スタブ。Anthropic/OpenAI/Workers AI のいずれかに差し替え。"""
-    # 例(Anthropic): client.messages.create(model="claude-...", max_tokens=600,
-    #                  messages=[{"role":"user","content":prompt}]).content[0].text
-    raise NotImplementedError("call_llm を実装してください (Anthropic/OpenAI/Workers AI)")
+    """Anthropic Messages API でテキスト応答を返す。
+
+    APIキーはコードに書かず os.environ["ANTHROPIC_API_KEY"] から読む（SDKが自動取得）。
+    モデルは LLM_MODEL（環境変数 OTA_LLM_MODEL で上書き可）。
+    """
+    client = anthropic.Anthropic()   # ANTHROPIC_API_KEY を環境変数から取得
+    resp = client.messages.create(
+        model=LLM_MODEL,
+        max_tokens=600,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return "".join(b.text for b in resp.content if b.type == "text")
+
 
 def ask(query, verbose=True):
-    from sentence_transformers import SentenceTransformer
     r = route(query)
     if r != "rule_explanation":
         return {"abstain": True, "reason": r, "answer": OUT_OF_SCOPE_MSG[r], "hits": []}
@@ -200,7 +209,6 @@ GOLD = [
 ]
 
 def evaluate():
-    from sentence_transformers import SentenceTransformer
     model = SentenceTransformer(EMB_MODEL)
     vecs, meta = load_index()
     ok = 0
