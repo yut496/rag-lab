@@ -1,0 +1,7 @@
+# 大田区ごみRAG PoC の依存（この実験ローカル。root の最小 pyproject とは分離）
+requests            # HTML取得（後続フェーズ）
+beautifulsoup4      # HTML本文抽出（後続フェーズ）
+sentence-transformers  # 埋め込み（intfloat/multilingual-e5-base）
+numpy               # ベクトル演算・索引
+anthropic           # call_llm（Claude Messages API）
+python-dotenv       # .env から ANTHROPIC_API_KEY を読む（export 不要）
