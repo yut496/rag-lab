@@ -77,3 +77,16 @@ cp .env.example .env
 
 - [minimal-rag/README.md](minimal-rag/README.md) — 素コードでRAG7段を体感する（まずはここから）
 - [real-corpus-rag/README.md](real-corpus-rag/README.md) — 実コーパスを収集・日本語化して検証する
+
+## License
+
+This repository is dual-licensed by file type:
+
+- **Source code & config** — files whose extensions are listed in
+  [LICENSE](LICENSE) (`.py`, `.ts`, `.tsx`, `.js`, `.jsx`, `.toml`, `.lock`,
+  plus `.gitignore` and `.env.example`) — MIT License.
+- **Everything else** — all documentation, corpus, data, and non-code assets,
+  in any format, present or future (`*.md`, `*.txt`, `*.csv`, images, etc.) —
+  © 2026 Yuta Igarashi (@yut496). All rights reserved. See
+  [LICENSE-docs](LICENSE-docs). No permission is granted to use these materials
+  as training data for machine learning or generative AI systems.

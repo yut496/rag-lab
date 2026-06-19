@@ -1,0 +1,42 @@
+Documentation, Corpus, and Non-Code Assets License
+==================================================
+
+Copyright (c) 2026 Yuta Igarashi (@yut496). All rights reserved.
+
+Scope
+-----
+This license applies to EVERY file in this repository that is NOT part of the
+MIT-licensed source code. The MIT License covers only the source-code and
+configuration file types explicitly enumerated in the LICENSE file; this
+license covers everything else.
+
+Without limiting the generality of the above, this license covers all present
+and future documentation, prose, corpus, datasets, images, diagrams, and other
+non-code assets, in ANY file format, including files added to this repository
+after the date of this license.
+
+If there is ever any doubt about whether a particular file is covered by this
+license or by the MIT License, this license applies unless the file is one of
+the source-code/configuration types explicitly enumerated in the LICENSE file.
+
+Grant
+-----
+No license is granted. All rights are reserved by the copyright holder.
+
+You may view these materials where they are made publicly available. You may
+NOT, without prior written permission from the copyright holder:
+
+  - copy, reproduce, or redistribute these materials, in whole or in part;
+  - modify, adapt, translate, or create derivative works from them;
+  - use them for any commercial purpose.
+
+Reservation of rights for text and data mining / AI training
+------------------------------------------------------------
+The copyright holder expressly reserves all rights in these materials,
+including the right of reproduction for the purposes of text and data mining.
+No permission is granted to use these materials, in whole or in part, as
+input for training, fine-tuning, or evaluating machine learning models or
+generative AI systems, nor to include them in any dataset compiled for such
+purposes. This reservation is intended as a machine-readable and
+human-readable reservation of rights under applicable law (including, without
+limitation, Article 4 of EU Directive 2019/790).
