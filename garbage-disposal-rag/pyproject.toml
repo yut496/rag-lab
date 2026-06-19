@@ -1,0 +1,18 @@
+[project]
+name = "garbage-disposal-rag"
+version = "0.1.0"
+description = "大田区ごみRAG PoC（ルール解説RAG）"
+requires-python = "==3.14.*"
+dependencies = [
+    "requests",            # HTML取得（後続フェーズ）
+    "beautifulsoup4",      # HTML本文抽出（後続フェーズ）
+    "sentence-transformers", # 埋め込み（intfloat/multilingual-e5-base）
+    "numpy",               # ベクトル演算・索引
+    "anthropic",           # call_llm（Claude Messages API）
+    "python-dotenv",       # .env から ANTHROPIC_API_KEY を読む
+]
+
+# スクリプト集であり配布パッケージではない。依存だけ .venv に入れる。
+# ルート(rag-lab)とは独立した uv プロジェクト（重いML依存を隔離）。
+[tool.uv]
+package = false

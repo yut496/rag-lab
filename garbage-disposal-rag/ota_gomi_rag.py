@@ -13,11 +13,11 @@
   3. 棄却 (abstention) を一級市民として実装。確信度が低ければ答えない。
   4. 出典URL + last_verified を必ず回答に添える (改定が頻繁なドメイン)。
 
-実行 (あなたの環境で):
-  pip install requests beautifulsoup4 sentence-transformers numpy
-  python ota_gomi_rag.py ingest    # HTML取得→チャンク→埋め込み→ota_index.npz
-  python ota_gomi_rag.py eval      # 内蔵ゴールドセットで groundedness/棄却 を確認
-  python ota_gomi_rag.py ask "粗大ごみの申込方法は?"
+実行 (あなたの環境で / uv プロジェクト):
+  uv sync                                 # 依存を .venv に導入
+  uv run python ota_gomi_rag.py ingest    # HTML取得→チャンク→埋め込み→ota_index.npz
+  uv run python ota_gomi_rag.py eval      # 内蔵ゴールドセットで groundedness/棄却 を確認
+  uv run python ota_gomi_rag.py ask "粗大ごみの申込方法は?"
 
 Cloudflare移植:
   埋め込み -> Workers AI (@cf/baai/bge-m3) / 索引 -> Vectorize / メタdata -> D1 / 推論 -> Workers AI or Anthropic API。
