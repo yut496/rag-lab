@@ -1,6 +1,6 @@
 # lost in the middle（詳細）
 
-> [GLOSSARY](../GLOSSARY.md) の `lost in the middle` の詳細ページ。
+> [GLOSSARY](GLOSSARY.md) の `lost in the middle` の詳細ページ。
 
 ## 定義
 
@@ -62,7 +62,7 @@ RAG はこの問題に直撃する。典型的な流れは:
 
 ## 関連用語
 
-- [`retrieval（検索）`](../GLOSSARY.md) — 上位数件を引く工程。並び順がこの現象に影響する。
-- [`TOP_K`](../GLOSSARY.md) — 採用件数。絞ることが対策になる。
-- [`context（文脈）`](../GLOSSARY.md) — LLM に渡す連結文字列。並べ方が効く。
-- [`reranking / cross-encoder`](../GLOSSARY.md) — 並べ替えによる代表的な対策。
+- [`retrieval（検索）`](GLOSSARY.md) — 上位数件を引く工程。並び順がこの現象に影響する。
+- [`TOP_K`](GLOSSARY.md) — 採用件数。絞ることが対策になる。
+- [`context（文脈）`](GLOSSARY.md) — LLM に渡す連結文字列。並べ方が効く。
+- [`reranking / cross-encoder`](GLOSSARY.md) — 並べ替えによる代表的な対策。
