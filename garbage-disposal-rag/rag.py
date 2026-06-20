@@ -1,5 +1,5 @@
 """
-大田区 ルール解説RAG — MVP スキャフォールド
+大田区 ゴミ出しルール解説RAG
 ================================================
 
 スコープ:
@@ -12,12 +12,6 @@
   2. セクション単位チャンク + 見出しをチャンク先頭に残す (区分の意味喪失を防ぐ)。
   3. 棄却 (abstention) を一級市民として実装。確信度が低ければ答えない。
   4. 出典URL + last_verified を必ず回答に添える (改定が頻繁なドメイン)。
-
-実行 (あなたの環境で / uv プロジェクト):
-  uv sync                                 # 依存を .venv に導入
-  uv run python rag.py ingest    # HTML取得→チャンク→埋め込み→ota_index.npz
-  uv run python rag.py eval      # 内蔵ゴールドセットで groundedness/棄却 を確認
-  uv run python rag.py ask "粗大ごみの申込方法は?"
 """
 
 import sys, re, json, time, os, random
