@@ -1,7 +1,7 @@
 [project]
-name = "rag-lab"
+name = "minimal-rag"
 version = "0.1.0"
-description = "RAGの学習用リポジトリ"
+description = "最小RAGを素コードで7段体感する学習用スクリプト"
 requires-python = "==3.14.*"
 dependencies = [
     "anthropic",     # 生成（Claude Messages API）用の公式SDK
@@ -9,7 +9,7 @@ dependencies = [
     "python-dotenv", # .env から API キーを読む用
 ]
 
-# このリポジトリはスクリプト集であり配布パッケージではない。
-# uv にプロジェクト自体のビルド/インストールをさせず、依存だけ .venv に入れる。
+# スクリプト集であり配布パッケージではない。依存だけ .venv に入れる。
+# ルート(rag-lab)とは独立した uv プロジェクト。
 [tool.uv]
 package = false
