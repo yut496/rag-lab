@@ -24,7 +24,7 @@ Cloudflare移植:
   まずローカルで eval ループを回して retrieval を詰めてから移植するのが速い。
 """
 
-import sys, re, json, time, os
+import sys, re, json, time, os, random
 from dataclasses import dataclass, asdict
 
 import anthropic
@@ -33,21 +33,55 @@ import requests
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 
-# ---- コーパス: 大田区サイトのHTMLページ (ルール解説のみ) -------------------
-# category はルーティングと出典表示に使う。収集日ページは「タイミング規則」部分のみ採用。
-SOURCES = [
-    ("プラスチック",        "https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/index.html"),
-    ("可燃ごみ・不燃ごみ",  "https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/gomishigen.html"),
-    ("粗大ごみ",            "https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/index.html"),
-    ("リチウムイオン電池",  "https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/index.html"),
-    ("区では収集できないもの","https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/index.html"),
-    ("出し方の基本ルール",  "https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/gomishigen.html"),
-    ("事業系ごみ",          "https://www.city.ota.tokyo.jp/seikatsu/gomi/gomi/kushuu.html"),
-]
-# 注: 上の index.html は目次ページ。実運用では各小ページ (プラスチック/粗大ごみ等の個別URL) に
-#     差し替えると粒度が上がる。MVPはまず動かす。PDF (令和8年度版) は穴埋め用に後から追加。
+# ---- コーパス: 大田区「家庭から出る資源とごみ」(index.html) 配下の全ページ -----
+# category はルーティングと出典表示に使う（= リンクテキスト）。
+BASE = "https://www.city.ota.tokyo.jp"
+UA = "Mozilla/5.0 (compatible; ota-gomi-rag/0.1; personal research)"  # gov サイトの既定UA弾き対策
 
-PDF_SUPPLEMENT = "https://www.city.ota.tokyo.jp/seikatsu/gomi/shigentogomi/katei-shigen-gomi_pamphlet.files/08shigenntogominowakekatadashikata.pdf"
+_PAGES = [
+    ("環境ポスターを載せて清掃車が走行中！", "/seikatsu/gomi/shigentogomi/sisoussyaposuta_.html"),
+    ("資源とごみの集積所について", "/seikatsu/gomi/shigentogomi/manners.html"),
+    ("豪雨が発生した際の家庭ごみ・事業系ごみの取扱いについて", "/seikatsu/gomi/shigentogomi/gouuhasseijinogomisyuusyuunitsui.html"),
+    ("令和7年9月11日大田区豪雨により発生したごみの取扱いについて", "/seikatsu/gomi/shigentogomi/gouusaigaijinotaiou.html"),
+    ("パンフレット「令和8年度版 資源とごみの分け方・出し方」", "/seikatsu/gomi/shigentogomi/katei-shigen-gomi_pamphlet.html"),
+    ("パンフレット・啓発冊子等", "/seikatsu/gomi/shigentogomi/panfu.html"),
+    ("資源とごみの収集日", "/seikatsu/gomi/shigentogomi/gomishigen.html"),
+    ("資源（7品目）", "/seikatsu/gomi/shigentogomi/shigen.html"),
+    ("プラスチック", "/seikatsu/gomi/shigentogomi/purasuhcikunodashikata.html"),
+    ("可燃ごみ", "/seikatsu/gomi/shigentogomi/kanen.html"),
+    ("不燃ごみ", "/seikatsu/gomi/shigentogomi/funen.html"),
+    ("粗大ごみ", "/seikatsu/gomi/shigentogomi/sodai.html"),
+    ("家電（エアコン、テレビ、洗濯機・衣類乾燥機、冷蔵・冷凍庫）のリサイクル", "/seikatsu/gomi/shigentogomi/kaden.html"),
+    ("小型家電（携帯電話、デジカメ等）リサイクル事業について", "/seikatsu/gomi/shigentogomi/kogatakadenn.html"),
+    ("小型充電式電池 (リチウムイオン電池等) の処分方法について", "/seikatsu/gomi/shigentogomi/kogata.html"),
+    ("家庭用パーソナルコンピューターのリサイクル", "/seikatsu/gomi/shigentogomi/katei.html"),
+    ("古着の拠点回収", "/seikatsu/gomi/shigentogomi/konuno.html"),
+    ("常設ボックスによる古着の回収", "/seikatsu/gomi/shigentogomi/furugikaisyuubox.html"),
+    ("不要品のリユース（再利用）", "/seikatsu/gomi/shigentogomi/oikura.html"),
+    ("資源とごみの散乱防止について", "/seikatsu/gomi/shigentogomi/karasunetto.html"),
+    ("家庭用使用済みインクカートリッジの回収について", "/seikatsu/gomi/shigentogomi/ink.html"),
+    ("廃食用油の出し方について", "/seikatsu/gomi/shigentogomi/haishoku.html"),
+    ("大田区有料ごみ処理券取り扱い店舗", "/seikatsu/gomi/shigentogomi/gomi-syori-ken_shop-list.html"),
+    ("臨時ごみ（一度に多量のごみを出す場合）について", "/seikatsu/gomi/shigentogomi/rinji.html"),
+    ("引越しを予定されている皆様へ...ごみの出し方のお知らせ", "/seikatsu/gomi/shigentogomi/hikkoshi-no-gomi.html"),
+    ("区では収集できないもの", "/seikatsu/gomi/shigentogomi/syuusyuu.html"),
+    ("ペット・動物死体の引き取り", "/seikatsu/gomi/shigentogomi/doubutsushitai.html"),
+    ("強風時の資源とごみの出し方", "/seikatsu/gomi/shigentogomi/kyoufuji.html"),
+    ("使い捨てライターの出し方について", "/seikatsu/gomi/shigentogomi/disposable-cigarette-lighter.html"),
+    ("スプレー缶、カセットボンベの出し方について", "/seikatsu/gomi/shigentogomi/supureikan_kasai.html"),
+    ("在宅医療廃棄物について", "/seikatsu/gomi/shigentogomi/zaitaku-iryou-haikibutsu.html"),
+    ("消火器のリサイクル", "/seikatsu/gomi/shigentogomi/shoukaki_recycle.html"),
+    ("自動車とオートバイのリサイクル", "/seikatsu/gomi/shigentogomi/jidousha.html"),
+    ("水銀を含むごみの出し方について", "/seikatsu/gomi/shigentogomi/suigin.html"),
+    ("基準を超える石綿（アスベスト）を含む珪藻土製品のメーカー回収について", "/seikatsu/gomi/shigentogomi/keisoudo.html"),
+    ("清掃だより(令和8年6月号)を発行しました", "/seikatsu/gomi/shigentogomi/seisoudayori.html"),
+    ("ごみの戸別訪問収集", "/seikatsu/gomi/shigentogomi/houmonshushu.html"),
+    ("ごみ・資源の持ち去り防止対策", "/seikatsu/gomi/keikaku_jisseki/mochisariboushi.html"),
+    ("不用品回収業者にご注意ください", "/seikatsu/gomi/shigentogomi/kaisyuu-gyousya.html"),
+    ("雑がみ回収袋の作り方", "/seikatsu/gomi/shigentogomi/zatsugamikaisyubukuronotsukurika.html"),
+    ("コードレス掃除機用非純正のバッテリーパックについて", "/seikatsu/gomi/shigentogomi/codeles-cleaner_battery-pack.html"),
+]
+SOURCES = [(category, BASE + path) for category, path in _PAGES]
 
 EMB_MODEL = "intfloat/multilingual-e5-base"  # JA特化なら cl-nagoya/ruri-base に差替 (prefix方式が異なる点に注意)
 INDEX_PATH = "ota_index.npz"
@@ -86,14 +120,20 @@ def fetch_and_chunk():
     chunks = []
     for category, url in SOURCES:
         try:
-            html = requests.get(url, timeout=20).text
+            r = requests.get(url, timeout=20, headers={"User-Agent": UA})
+            r.encoding = r.apparent_encoding or r.encoding
+            html = r.text
         except Exception as e:
             print(f"[skip] {url}: {e}"); continue
         soup = BeautifulSoup(html, "html.parser")
-        main = soup.find(id="main") or soup.find("article") or soup.body
+        # 本文コンテナ: 大田区は id="CONT"。無ければ #main / article / body にフォールバック。
+        main = (soup.find(id="CONT") or soup.find(id="main")
+                or soup.find("article") or soup.body)
         if not main:
+            print(f"[skip] {url}: 本文コンテナが見つからない")
             continue
-        # 見出し(h2/h3)でセクション分割し、見出しを各チャンク先頭に残す
+        # 見出し(h2/h3)でセクション分割し、見出しを各チャンク先頭に残す。
+        # <table> は別扱いで「行を分断しない」チャンクにする（td のフラット走査では行が崩れるため）。
         section = category
         buf = []
         def flush():
@@ -104,7 +144,15 @@ def fetch_and_chunk():
             for piece in split_keep_header(section, body):
                 chunks.append(Chunk(piece, category, url, section, today))
             buf = []
-        for el in main.find_all(["h2", "h3", "p", "li", "td"]):
+        for el in main.find_all(["h2", "h3", "p", "li", "table"]):
+            if el.name != "table" and el.find_parent("table"):
+                continue   # 表の中身は table 側でまとめるのでスキップ
+            if el.name == "table":
+                flush()
+                rows = _table_to_rows(el)
+                for piece in split_table_keep_header(section, rows):
+                    chunks.append(Chunk(piece, category, url, section, today))
+                continue
             t = el.get_text(" ", strip=True)
             if not t:
                 continue
@@ -127,6 +175,27 @@ def split_keep_header(header, body):
         out.append(f"【{header}】{cur.strip()}")
     return out
 
+def _table_to_rows(table):
+    """<table> を「1行=セルを ｜ で連結した文字列」のリストにする（行は分断しない単位）。"""
+    rows = []
+    for tr in table.find_all("tr"):
+        cells = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
+        cells = [c for c in cells if c]
+        if cells:
+            rows.append(" ｜ ".join(cells))
+    return rows
+
+def split_table_keep_header(header, rows):
+    """表を見出し付きチャンクにまとめる。MAX_CHARS 超過時は行境界で分割し、行は決して割らない。"""
+    out, cur = [], []
+    for row in rows:
+        if cur and sum(len(r) for r in cur) + len(row) > MAX_CHARS:
+            out.append(f"【{header}】\n" + "\n".join(cur)); cur = []
+        cur.append(row)
+    if cur:
+        out.append(f"【{header}】\n" + "\n".join(cur))
+    return out
+
 def embed(texts, model, kind):
     # e5系は "query: " / "passage: " のprefixが必須。付け忘れると検索品質が静かに落ちる。
     prefix = "query: " if kind == "query" else "passage: "
@@ -134,12 +203,32 @@ def embed(texts, model, kind):
 
 def ingest():
     chunks = fetch_and_chunk()
+    _dump_for_inspection(chunks)   # 観察用出力（崩れを後から目視するため）
     model = SentenceTransformer(EMB_MODEL)
     vecs = embed([c.text for c in chunks], model, "passage")
     meta = [asdict(c) for c in chunks]
     np.savez(INDEX_PATH, vecs=np.asarray(vecs, dtype="float32"),
              meta=np.array(json.dumps(meta, ensure_ascii=False)))
     print(f"[ingest] saved -> {INDEX_PATH}")
+
+def _dump_for_inspection(chunks):
+    """観察用の出力: コーパス取得日 / 全チャンクのダンプ / 無作為20件サンプル。"""
+    today = time.strftime("%Y-%m-%d")
+    with open("corpus_date.txt", "w", encoding="utf-8") as f:
+        f.write(f"corpus snapshot date: {today}\n")
+        f.write(f"sources: {len(SOURCES)} pages\n")
+        f.write(f"chunks: {len(chunks)}\n")
+    with open("chunks_dump.txt", "w", encoding="utf-8") as f:
+        for i, c in enumerate(chunks):
+            f.write(f"=== [{i}] category={c.category} | section={c.section} | {c.source_url}\n")
+            f.write(c.text + "\n\n")
+    rng = random.Random(42)   # seed固定で再現可能
+    sample = rng.sample(chunks, min(20, len(chunks)))
+    with open("chunks_sample.txt", "w", encoding="utf-8") as f:
+        f.write(f"# 無作為20件サンプル（seed=42 / 全{len(chunks)}件中）\n\n")
+        for c in sample:
+            f.write(f"--- category={c.category} | section={c.section}\n{c.text}\n\n")
+    print("[ingest] inspection dump -> corpus_date.txt / chunks_dump.txt / chunks_sample.txt")
 
 # ---- 検索 + 棄却 + 回答 ----------------------------------------------------
 def load_index():
