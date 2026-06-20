@@ -3,4 +3,5 @@
 ota_index.npz
 chunks_dump.txt
 chunks_sample.txt
+chunks_sample_v2.txt
 corpus_date.txt
