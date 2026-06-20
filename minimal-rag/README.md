@@ -41,20 +41,28 @@ NOTE.md    学習全体の履歴（疑問と回答、メモ、ゴールのアウ
   retrievalのコサイン類似度ランキングで、答えを含むチャンクが上位に来るか。来なければ「検索の失敗」。
 - **grounding（捏造抑制）が働くことを確認する**:
   コーパスに無い質問
-  （`uv run python minimal-rag/rag.py "What is the capital of France?"`）で、無関係なチャンクが
+  （`cd minimal-rag && uv run python rag.py "What is the capital of France?"`）で、無関係なチャンクが
   引かれ Claude が「分からない」と答える。
 
 ## 実行
 
-`rag.py` は読み込み元やログを自分の位置（`__file__`）基準で解決するので、
-**リポジトリ内のどこからでも**パス指定で実行できる（`cd` 不要）。
+この実験は**独立した uv 環境**を持つ。初回はこのディレクトリで一度同期する
+（`.venv/` と `uv.lock` が作られる。`.env` はリポジトリ直下のものを共有する）:
 
 ```bash
-# コーパス内の質問（答えは minimal-rag/corpus/azure_pangolin.txt にある）
-uv run python minimal-rag/rag.py "How many termites can the azure pangolin eat in a night?"
+cd minimal-rag
+uv sync
+```
+
+以降はこのディレクトリの中で実行する。`rag.py` は読み込み元やログを自分の位置
+（`__file__`）基準で解決するので、コーパス等のパスは `cd` 後でもそのまま通る:
+
+```bash
+# コーパス内の質問（答えは corpus/azure_pangolin.txt にある）
+uv run python rag.py "How many termites can the azure pangolin eat in a night?"
 
 # 引数なしならデフォルト質問が使われる
-uv run python minimal-rag/rag.py
+uv run python rag.py
 ```
 
 各段が順に表示され、最後に Claude の回答が出る。
