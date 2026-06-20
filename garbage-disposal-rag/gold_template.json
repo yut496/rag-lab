@@ -1,0 +1,13 @@
+[
+  {
+    "id": "g01",
+    "question": "",
+    "source": "synthetic",
+    "note": "",
+    "should_abstain": false,
+    "abstain_reason": null,
+    "expected_category": "可燃ごみ",
+    "r74_changed": false,
+    "smoke": false
+  }
+]
