@@ -115,6 +115,30 @@ class Chunk:
     section: str
     last_verified: str
 
+def _pick_container(soup):
+    """本文コンテナを選ぶ。
+
+    大田区の id="CONT" は「本文ここから」のスキップリンク用アンカーで中身が空のことがあるため、
+    十分なテキスト量(>=200字)を持つ候補だけ採用し、無ければ body にフォールバックする。
+    戻り値: (要素, 選んだセレクタ名)。見つからなければ (None, None)。
+    """
+    candidates = [
+        ("#CONT", lambda: soup.find(id="CONT")),
+        ("#main", lambda: soup.find(id="main")),
+        ("article", lambda: soup.find("article")),
+        ("#contents", lambda: soup.find(id="contents")),
+        (".contents", lambda: soup.find(class_="contents")),
+        ("[role=main]", lambda: soup.find(attrs={"role": "main"})),
+    ]
+    for name, finder in candidates:
+        el = finder()
+        if el and len(el.get_text(strip=True)) >= 200:
+            return el, name
+    body = soup.body
+    if body and len(body.get_text(strip=True)) >= 30:
+        return body, "body(fallback)"
+    return None, None
+
 def fetch_and_chunk():
     today = time.strftime("%Y-%m-%d")
     chunks = []
@@ -122,20 +146,22 @@ def fetch_and_chunk():
         try:
             r = requests.get(url, timeout=20, headers={"User-Agent": UA})
             r.encoding = r.apparent_encoding or r.encoding
-            html = r.text
         except Exception as e:
             print(f"[skip] {url}: {e}"); continue
-        soup = BeautifulSoup(html, "html.parser")
-        # 本文コンテナ: 大田区は id="CONT"。無ければ #main / article / body にフォールバック。
-        main = (soup.find(id="CONT") or soup.find(id="main")
-                or soup.find("article") or soup.body)
-        if not main:
-            print(f"[skip] {url}: 本文コンテナが見つからない")
+        if r.status_code != 200:
+            print(f"[skip] {url}: HTTP {r.status_code}"); continue
+        soup = BeautifulSoup(r.text, "html.parser")
+        for tag in soup.find_all(["script", "style", "nav", "header", "footer", "aside"]):
+            tag.decompose()   # 共通ナビ等のノイズ除去
+        main, picked = _pick_container(soup)
+        if main is None:
+            print(f"[skip] {url}: 本文コンテナが見つからない (HTTP {r.status_code})")
             continue
         # 見出し(h2/h3)でセクション分割し、見出しを各チャンク先頭に残す。
         # <table> は別扱いで「行を分断しない」チャンクにする（td のフラット走査では行が崩れるため）。
         section = category
         buf = []
+        before = len(chunks)
         def flush():
             nonlocal buf
             body = "\n".join(b for b in buf if b).strip()
@@ -161,6 +187,9 @@ def fetch_and_chunk():
             else:
                 buf.append(t)
         flush()
+        # 診断ログ: どのコンテナを使い、何チャンク出たか（0が続くなら抽出が崩れている）
+        print(f"[page] container={picked} textlen={len(main.get_text(strip=True))} "
+              f"chunks={len(chunks) - before}  {url}")
     print(f"[ingest] {len(chunks)} chunks from {len(SOURCES)} pages")
     return chunks
 
