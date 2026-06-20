@@ -1,0 +1,6 @@
+# ingest が生成する成果物（大田区サイトのスクレイプ内容・バイナリ索引）。
+# 再配布を避けるためコミットしない。手元での観察用。
+ota_index.npz
+chunks_dump.txt
+chunks_sample.txt
+corpus_date.txt
