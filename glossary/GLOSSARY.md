@@ -29,7 +29,7 @@
 | **hallucination（ハルシネーション）** | 文脈に無い内容をもっともらしく捏造する現象。grounding で抑制を狙う。 |
 | **faithfulness（忠実性）** | 回答が与えた文脈にどれだけ忠実かを測る評価観点。 |
 | **precision / recall** | 検索・分類の評価指標。適合率（引いたもののうち正しい割合）／再現率（正解のうち引けた割合）。 |
-| **lost in the middle** | 長い文脈の中ほどに置かれた情報を LLM が見落としやすい現象。→ [詳細](glossary/lost-in-the-middle.md) |
+| **lost in the middle** | 長い文脈の中ほどに置かれた情報を LLM が見落としやすい現象。→ [詳細](lost-in-the-middle.md) |
 | **reranking / cross-encoder** | retrieval 後に候補を並べ替えて精度を上げる手法／そのためのモデル。 |
 | **hybrid retrieval (dense / sparse)** | ベクトル検索 (dense) とキーワード検索 (sparse) を併用する検索方式。 |
 | **BM25** | 単語頻度ベースの古典的なスパース検索スコアリング。 |
