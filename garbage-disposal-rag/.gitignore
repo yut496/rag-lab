@@ -2,6 +2,5 @@
 # 再配布を避けるためコミットしない。手元での観察用。
 ota_index.npz
 chunks_dump.txt
-chunks_sample.txt
-chunks_sample_v2.txt
+chunks_sample*.txt
 corpus_date.txt
