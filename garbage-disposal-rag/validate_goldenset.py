@@ -1,10 +1,10 @@
-"""ゴールデンセット gold.json のスキーマ検証スクリプト（Phase 3 / Phase 2 Hotfix 後の実スキーマ準拠）。
+"""ゴールデンセット goldenset.json のスキーマ検証スクリプト（Phase 3 / Phase 2 Hotfix 後の実スキーマ準拠）。
 
 質問内容は委託者（人間）が作成する。本スクリプトは内容を生成・改変せず、
 **構造と内訳要件のみ** を機械的に検証して PASS/FAIL を一覧表示する。
 
 データ形式: 手編集しやすい整形 JSON 配列（1要素=1問）。
-  例（gold_template.json も同形式）:
+  例（goldenset_template.json も同形式）:
   [
     {
       "id": 1,
@@ -21,7 +21,7 @@
   ]
 
 実行:
-  python validate_gold.py [gold.json]   # 省略時は ./gold.json
+  python validate_goldenset.py [goldenset.json]   # 省略時は ./goldenset.json
   （標準ライブラリのみ。uv run でなくても動く。）
 
 ========================================================================
@@ -82,7 +82,7 @@ CATEGORIES = {
 }
 
 
-def load_gold(path):
+def load_goldenset(path):
     """整形 JSON 配列を読み込む。トップレベルが配列でなければ ValueError。"""
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
@@ -135,11 +135,11 @@ def structural_issues(objs):
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else "gold.json"
+    path = sys.argv[1] if len(sys.argv) > 1 else "goldenset.json"
     try:
-        objs = load_gold(path)
+        objs = load_goldenset(path)
     except FileNotFoundError:
-        print(f"✗ {path} が見つかりません。gold_template.json を雛形に作成してください。")
+        print(f"✗ {path} が見つかりません。goldenset_template.json を雛形に作成してください。")
         sys.exit(2)
     except (json.JSONDecodeError, ValueError) as e:
         print(f"✗ {path} を JSON 配列として読めません: {e}")
@@ -198,7 +198,7 @@ def main():
     add(not bad_ec_true, "should_abstain==true は expected_category == null", f"違反 id: {bad_ec_true}")
 
     # 出力
-    print(f"=== validate_gold: {path}  ({n} 件) ===")
+    print(f"=== validate_goldenset: {path}  ({n} 件) ===")
     all_ok = True
     for ok, name, detail in checks:
         mark = "PASS" if ok else "FAIL"
