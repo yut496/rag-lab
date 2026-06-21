@@ -1,13 +1,14 @@
 [
   {
-    "id": "g01",
-    "question": "",
+    "id": 1,
+    "query": "",
     "source": "synthetic",
-    "note": "",
+    "expected_category": "可燃ごみ",
     "should_abstain": false,
     "abstain_reason": null,
-    "expected_category": "可燃ごみ",
     "r74_changed": false,
-    "smoke": false
+    "smoke": false,
+    "ideal_answer": "",
+    "note": ""
   }
 ]
