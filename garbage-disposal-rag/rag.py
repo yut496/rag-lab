@@ -23,55 +23,34 @@ import requests
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 
-# ---- コーパス: 大田区「家庭から出る資源とごみ」(index.html) 配下の全ページ -----
-# category はルーティングと出典表示に使う（= リンクテキスト）。
+# ---- コーパス: 7カテゴリに対応する固定ページのみ（Phase 2 Hotfix で見出し流用を廃止） -----
+# category はページ見出し（リンクテキスト）の流用をやめ、source_url -> 7カテゴリ の明示マッピングで決める。
 BASE = "https://www.city.ota.tokyo.jp"
 UA = "Mozilla/5.0 (compatible; ota-gomi-rag/0.1; personal research)"  # gov サイトの既定UA弾き対策
 
-_PAGES = [
-    ("環境ポスターを載せて清掃車が走行中！", "/seikatsu/gomi/shigentogomi/sisoussyaposuta_.html"),
-    ("資源とごみの集積所について", "/seikatsu/gomi/shigentogomi/manners.html"),
-    ("豪雨が発生した際の家庭ごみ・事業系ごみの取扱いについて", "/seikatsu/gomi/shigentogomi/gouuhasseijinogomisyuusyuunitsui.html"),
-    ("令和7年9月11日大田区豪雨により発生したごみの取扱いについて", "/seikatsu/gomi/shigentogomi/gouusaigaijinotaiou.html"),
-    ("パンフレット「令和8年度版 資源とごみの分け方・出し方」", "/seikatsu/gomi/shigentogomi/katei-shigen-gomi_pamphlet.html"),
-    ("パンフレット・啓発冊子等", "/seikatsu/gomi/shigentogomi/panfu.html"),
-    ("資源とごみの収集日", "/seikatsu/gomi/shigentogomi/gomishigen.html"),
-    ("資源（7品目）", "/seikatsu/gomi/shigentogomi/shigen.html"),
-    ("プラスチック", "/seikatsu/gomi/shigentogomi/purasuhcikunodashikata.html"),
-    ("可燃ごみ", "/seikatsu/gomi/shigentogomi/kanen.html"),
-    ("不燃ごみ", "/seikatsu/gomi/shigentogomi/funen.html"),
-    ("粗大ごみ", "/seikatsu/gomi/shigentogomi/sodai.html"),
-    ("家電（エアコン、テレビ、洗濯機・衣類乾燥機、冷蔵・冷凍庫）のリサイクル", "/seikatsu/gomi/shigentogomi/kaden.html"),
-    ("小型家電（携帯電話、デジカメ等）リサイクル事業について", "/seikatsu/gomi/shigentogomi/kogatakadenn.html"),
-    ("小型充電式電池 (リチウムイオン電池等) の処分方法について", "/seikatsu/gomi/shigentogomi/kogata.html"),
-    ("家庭用パーソナルコンピューターのリサイクル", "/seikatsu/gomi/shigentogomi/katei.html"),
-    ("古着の拠点回収", "/seikatsu/gomi/shigentogomi/konuno.html"),
-    ("常設ボックスによる古着の回収", "/seikatsu/gomi/shigentogomi/furugikaisyuubox.html"),
-    ("不要品のリユース（再利用）", "/seikatsu/gomi/shigentogomi/oikura.html"),
-    ("資源とごみの散乱防止について", "/seikatsu/gomi/shigentogomi/karasunetto.html"),
-    ("家庭用使用済みインクカートリッジの回収について", "/seikatsu/gomi/shigentogomi/ink.html"),
-    ("廃食用油の出し方について", "/seikatsu/gomi/shigentogomi/haishoku.html"),
-    ("大田区有料ごみ処理券取り扱い店舗", "/seikatsu/gomi/shigentogomi/gomi-syori-ken_shop-list.html"),
-    ("臨時ごみ（一度に多量のごみを出す場合）について", "/seikatsu/gomi/shigentogomi/rinji.html"),
-    ("引越しを予定されている皆様へ...ごみの出し方のお知らせ", "/seikatsu/gomi/shigentogomi/hikkoshi-no-gomi.html"),
-    ("区では収集できないもの", "/seikatsu/gomi/shigentogomi/syuusyuu.html"),
-    ("ペット・動物死体の引き取り", "/seikatsu/gomi/shigentogomi/doubutsushitai.html"),
-    ("強風時の資源とごみの出し方", "/seikatsu/gomi/shigentogomi/kyoufuji.html"),
-    ("使い捨てライターの出し方について", "/seikatsu/gomi/shigentogomi/disposable-cigarette-lighter.html"),
-    ("スプレー缶、カセットボンベの出し方について", "/seikatsu/gomi/shigentogomi/supureikan_kasai.html"),
-    ("在宅医療廃棄物について", "/seikatsu/gomi/shigentogomi/zaitaku-iryou-haikibutsu.html"),
-    ("消火器のリサイクル", "/seikatsu/gomi/shigentogomi/shoukaki_recycle.html"),
-    ("自動車とオートバイのリサイクル", "/seikatsu/gomi/shigentogomi/jidousha.html"),
-    ("水銀を含むごみの出し方について", "/seikatsu/gomi/shigentogomi/suigin.html"),
-    ("基準を超える石綿（アスベスト）を含む珪藻土製品のメーカー回収について", "/seikatsu/gomi/shigentogomi/keisoudo.html"),
-    ("清掃だより(令和8年6月号)を発行しました", "/seikatsu/gomi/shigentogomi/seisoudayori.html"),
-    ("ごみの戸別訪問収集", "/seikatsu/gomi/shigentogomi/houmonshushu.html"),
-    ("ごみ・資源の持ち去り防止対策", "/seikatsu/gomi/keikaku_jisseki/mochisariboushi.html"),
-    ("不用品回収業者にご注意ください", "/seikatsu/gomi/shigentogomi/kaisyuu-gyousya.html"),
-    ("雑がみ回収袋の作り方", "/seikatsu/gomi/shigentogomi/zatsugamikaisyubukuronotsukurika.html"),
-    ("コードレス掃除機用非純正のバッテリーパックについて", "/seikatsu/gomi/shigentogomi/codeles-cleaner_battery-pack.html"),
-]
-SOURCES = [(category, BASE + path) for category, path in _PAGES]
+# 許可カテゴリ（委託者確定・増減禁止）。全チャンクの category はこの7値のいずれかに正規化される。
+CATEGORIES = (
+    "プラスチック",
+    "可燃ごみ",
+    "不燃ごみ",
+    "粗大ごみ",
+    "資源",
+    "区で収集できないもの",
+    "集積所",
+)
+
+# source_url -> 7カテゴリ の明示マッピング。category はこの辞書だけで決定する（見出しは使わない）。
+URL_CATEGORY = {
+    BASE + "/seikatsu/gomi/shigentogomi/purasuhcikunodashikata.html": "プラスチック",
+    BASE + "/seikatsu/gomi/shigentogomi/kanen.html":                  "可燃ごみ",
+    BASE + "/seikatsu/gomi/shigentogomi/funen.html":                  "不燃ごみ",
+    BASE + "/seikatsu/gomi/shigentogomi/sodai.html":                  "粗大ごみ",
+    BASE + "/seikatsu/gomi/shigentogomi/shigen.html":                 "資源",
+    BASE + "/seikatsu/gomi/shigentogomi/syuusyuu.html":               "区で収集できないもの",
+    BASE + "/seikatsu/gomi/shigentogomi/manners.html":                "集積所",
+}
+# 取得対象は7カテゴリ対応ページのみ（旧41ページ -> 7ページ。非該当ページは除外）。
+SOURCES = sorted(URL_CATEGORY)
 
 EMB_MODEL = "intfloat/multilingual-e5-base"  # JA特化なら cl-nagoya/ruri-base に差替 (prefix方式が異なる点に注意)
 INDEX_PATH = "ota_index.npz"
@@ -108,7 +87,11 @@ class Chunk:
 def fetch_and_chunk():
     today = time.strftime("%Y-%m-%d")
     chunks = []
-    for category, url in SOURCES:
+    for url in SOURCES:
+        category = URL_CATEGORY.get(url)
+        if category is None:
+            print(f"[warn] {url}: 7カテゴリに未割当 -> スキップ（混入）")
+            continue
         try:
             r = requests.get(url, timeout=20, headers={"User-Agent": UA})
             r.encoding = r.apparent_encoding or r.encoding
@@ -199,23 +182,42 @@ def ingest():
     print(f"[ingest] saved -> {INDEX_PATH}")
 
 def _dump_for_inspection(chunks):
-    """観察用の出力: コーパス取得日 / 全チャンクのダンプ / 無作為20件サンプル。"""
+    """観察用の出力: 取得日 / category集計 / 全チャンクのダンプ / 無作為20件サンプル(v2)。"""
     today = time.strftime("%Y-%m-%d")
+    # category 集計（全チャンクが許可7カテゴリに収まっているかを確認・表示する）
+    counts = {}
+    for c in chunks:
+        counts[c.category] = counts.get(c.category, 0) + 1
+    table = [f"  {cat}: {counts.get(cat, 0)}" for cat in CATEGORIES]
+    extra = {cat: n for cat, n in counts.items() if cat not in CATEGORIES}
+    print("[ingest] category 集計（許可7カテゴリ）:")
+    for line in table:
+        print(line)
+    if extra:
+        print(f"[warn] 7カテゴリ外の category が混入: {extra}")
+    else:
+        print("[ingest] OK: 全チャンクが7カテゴリ内")
+
     with open("corpus_date.txt", "w", encoding="utf-8") as f:
         f.write(f"corpus snapshot date: {today}\n")
         f.write(f"sources: {len(SOURCES)} pages\n")
         f.write(f"chunks: {len(chunks)}\n")
+        f.write("category counts (whitelist of 7):\n")
+        for line in table:
+            f.write(line + "\n")
+        if extra:
+            f.write(f"[warn] outside-whitelist categories: {extra}\n")
     with open("chunks_dump.txt", "w", encoding="utf-8") as f:
         for i, c in enumerate(chunks):
             f.write(f"=== [{i}] category={c.category} | section={c.section} | {c.source_url}\n")
             f.write(c.text + "\n\n")
     rng = random.Random(42)   # seed固定で再現可能
     sample = rng.sample(chunks, min(20, len(chunks)))
-    with open("chunks_sample.txt", "w", encoding="utf-8") as f:
-        f.write(f"# 無作為20件サンプル（seed=42 / 全{len(chunks)}件中）\n\n")
+    with open("chunks_sample_v2.txt", "w", encoding="utf-8") as f:
+        f.write(f"# 無作為20件サンプル v2（seed=42 / 全{len(chunks)}件中 / category正規化後）\n\n")
         for c in sample:
             f.write(f"--- category={c.category} | section={c.section}\n{c.text}\n\n")
-    print("[ingest] inspection dump -> corpus_date.txt / chunks_dump.txt / chunks_sample.txt")
+    print("[ingest] inspection dump -> corpus_date.txt / chunks_dump.txt / chunks_sample_v2.txt")
 
 # ---- 検索 + 棄却 + 回答 ----------------------------------------------------
 def load_index():
