@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "query": "",
+    "source": "synthetic",
+    "expected_category": "可燃ごみ",
+    "should_abstain": false,
+    "abstain_reason": null,
+    "r74_changed": false,
+    "smoke": false,
+    "ideal_answer": "",
+    "note": ""
+  }
+]

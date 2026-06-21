@@ -2,6 +2,9 @@
 # 再配布を避けるためコミットしない。手元での観察用。
 ota_index.npz
 chunks_dump.txt
-chunks_sample.txt
-chunks_sample_v2.txt
+chunks_sample*.txt
 corpus_date.txt
+
+# ゴールデンセット本体（手作業作成・ideal_answer に大田区FAQ本文を含むため再配布回避）。
+# 雛形 goldenset_template.json はスクレイプを含まないため別途コミットする。
+goldenset.json
