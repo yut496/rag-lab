@@ -68,17 +68,28 @@ import json
 import collections
 
 REQUIRED_FIELDS = [
-    "id", "query", "source", "note",
-    "should_abstain", "abstain_reason", "expected_category",
-    "r74_changed", "smoke",
+    "id",
+    "query",
+    "source",
+    "note",
+    "should_abstain",
+    "abstain_reason",
+    "expected_category",
+    "r74_changed",
+    "smoke",
 ]
 ABSTAIN_REASONS = {"item_classify", "collection_day", "not_in_corpus", "too_broad"}
 # note（出どころ）が不要な source。外部出典が無い＝自作・合成は空でよい。
 NO_NOTE_SOURCES = {"synthetic", "self_authored"}
 # rag.py の CATEGORIES と一致させる（Phase 2 Hotfix で確定した7カテゴリ）。
 CATEGORIES = {
-    "プラスチック", "可燃ごみ", "不燃ごみ", "粗大ごみ",
-    "資源", "区で収集できないもの", "集積所",
+    "プラスチック",
+    "可燃ごみ",
+    "不燃ごみ",
+    "粗大ごみ",
+    "資源",
+    "区で収集できないもの",
+    "集積所",
 }
 
 
@@ -104,7 +115,9 @@ def structural_issues(objs):
             if fld not in o:
                 issues.append(f"{tag}: フィールド '{fld}' が無い")
         # id は正の整数（bool は除外）
-        if "id" in o and (not isinstance(o["id"], int) or isinstance(o["id"], bool) or o["id"] <= 0):
+        if "id" in o and (
+            not isinstance(o["id"], int) or isinstance(o["id"], bool) or o["id"] <= 0
+        ):
             issues.append(f"{tag}: 'id' は正の整数であるべき（実際: {o.get('id')!r}）")
         # query / source は必須の文字列
         for fld in ("query", "source"):
@@ -123,10 +136,14 @@ def structural_issues(objs):
         ar = o.get("abstain_reason")
         if sa is True:
             if ar not in ABSTAIN_REASONS:
-                issues.append(f"{tag}: should_abstain==true なら abstain_reason は {sorted(ABSTAIN_REASONS)} のいずれか（実際: {ar!r}）")
+                issues.append(
+                    f"{tag}: should_abstain==true なら abstain_reason は {sorted(ABSTAIN_REASONS)} のいずれか（実際: {ar!r}）"
+                )
         elif sa is False:
             if ar is not None:
-                issues.append(f"{tag}: should_abstain==false なら abstain_reason は null（実際: {ar!r}）")
+                issues.append(
+                    f"{tag}: should_abstain==false なら abstain_reason は null（実際: {ar!r}）"
+                )
         # expected_category は str か null
         ec = o.get("expected_category")
         if ec is not None and not isinstance(ec, str):
@@ -139,22 +156,27 @@ def main():
     try:
         objs = load_goldenset(path)
     except FileNotFoundError:
-        print(f"✗ {path} が見つかりません。goldenset_template.json を雛形に作成してください。")
+        print(
+            f"✗ {path} が見つかりません。goldenset_template.json を雛形に作成してください。"
+        )
         sys.exit(2)
     except (json.JSONDecodeError, ValueError) as e:
         print(f"✗ {path} を JSON 配列として読めません: {e}")
         sys.exit(2)
 
     n = len(objs)
-    checks = []   # (ok: bool, name: str, detail: str)
+    checks = []  # (ok: bool, name: str, detail: str)
 
     def add(ok, name, detail=""):
         checks.append((ok, name, detail))
 
     # 1) 構造（フィールド・型・整合）
     issues = structural_issues(objs)
-    add(not issues, "構造（必須フィールド・型・整合）",
-        "\n      - " + "\n      - ".join(issues) if issues else "")
+    add(
+        not issues,
+        "構造（必須フィールド・型・整合）",
+        "\n      - " + "\n      - ".join(issues) if issues else "",
+    )
 
     # 2) 集計チェック
     add(n == 15, "総数 == 15", f"実際 {n}")
@@ -167,12 +189,23 @@ def main():
     ab = [o for o in valid if o.get("should_abstain") is True]
     add(len(ab) >= 4, "should_abstain==true の数 >= 4", f"実際 {len(ab)}")
 
-    ar_ic = [o for o in valid if o.get("abstain_reason") in ("item_classify", "collection_day")]
-    add(len(ar_ic) >= 3,
-        "abstain_reason ∈ {item_classify, collection_day} の数 >= 3", f"実際 {len(ar_ic)}")
+    ar_ic = [
+        o
+        for o in valid
+        if o.get("abstain_reason") in ("item_classify", "collection_day")
+    ]
+    add(
+        len(ar_ic) >= 3,
+        "abstain_reason ∈ {item_classify, collection_day} の数 >= 3",
+        f"実際 {len(ar_ic)}",
+    )
 
     ar_nc = [o for o in valid if o.get("abstain_reason") == "not_in_corpus"]
-    add(len(ar_nc) >= 1, "abstain_reason == not_in_corpus の数 >= 1", f"実際 {len(ar_nc)}")
+    add(
+        len(ar_nc) >= 1,
+        "abstain_reason == not_in_corpus の数 >= 1",
+        f"実際 {len(ar_nc)}",
+    )
 
     r74 = [o for o in valid if o.get("r74_changed") is True]
     add(len(r74) >= 1, "r74_changed==true の数 >= 1", f"実際 {len(r74)}")
@@ -180,22 +213,52 @@ def main():
     sm = [o for o in valid if o.get("smoke") is True]
     add(len(sm) == 5, "smoke==true の数 == 5", f"実際 {len(sm)}")
 
-    bad_note = [o.get("id") for o in valid
-                if o.get("source") not in NO_NOTE_SOURCES and not str(o.get("note") or "").strip()]
-    add(not bad_note, "外部出典 source（synthetic/self_authored 以外）は note 非空", f"note 空の id: {bad_note}")
+    bad_note = [
+        o.get("id")
+        for o in valid
+        if o.get("source") not in NO_NOTE_SOURCES
+        and not str(o.get("note") or "").strip()
+    ]
+    add(
+        not bad_note,
+        "外部出典 source（synthetic/self_authored 以外）は note 非空",
+        f"note 空の id: {bad_note}",
+    )
 
-    bad_ec_false = [o.get("id") for o in valid
-                    if o.get("should_abstain") is False and not o.get("expected_category")]
-    add(not bad_ec_false, "should_abstain==false は expected_category 非null", f"違反 id: {bad_ec_false}")
+    bad_ec_false = [
+        o.get("id")
+        for o in valid
+        if o.get("should_abstain") is False and not o.get("expected_category")
+    ]
+    add(
+        not bad_ec_false,
+        "should_abstain==false は expected_category 非null",
+        f"違反 id: {bad_ec_false}",
+    )
 
-    bad_ec_cat = [o.get("id") for o in valid
-                  if o.get("should_abstain") is False and o.get("expected_category")
-                  and o.get("expected_category") not in CATEGORIES]
-    add(not bad_ec_cat, "expected_category は7カテゴリのいずれか", f"カテゴリ外の id: {bad_ec_cat}")
+    bad_ec_cat = [
+        o.get("id")
+        for o in valid
+        if o.get("should_abstain") is False
+        and o.get("expected_category")
+        and o.get("expected_category") not in CATEGORIES
+    ]
+    add(
+        not bad_ec_cat,
+        "expected_category は7カテゴリのいずれか",
+        f"カテゴリ外の id: {bad_ec_cat}",
+    )
 
-    bad_ec_true = [o.get("id") for o in valid
-                   if o.get("should_abstain") is True and o.get("expected_category") is not None]
-    add(not bad_ec_true, "should_abstain==true は expected_category == null", f"違反 id: {bad_ec_true}")
+    bad_ec_true = [
+        o.get("id")
+        for o in valid
+        if o.get("should_abstain") is True and o.get("expected_category") is not None
+    ]
+    add(
+        not bad_ec_true,
+        "should_abstain==true は expected_category == null",
+        f"違反 id: {bad_ec_true}",
+    )
 
     # 出力
     print(f"=== validate_goldenset: {path}  ({n} 件) ===")
@@ -207,7 +270,9 @@ def main():
             line += f" — {detail}"
         print(line)
         all_ok = all_ok and ok
-    print("=> " + ("ALL PASS ✅" if all_ok else "FAIL ❌（上記 FAIL を修正してください）"))
+    print(
+        "=> " + ("ALL PASS ✅" if all_ok else "FAIL ❌（上記 FAIL を修正してください）")
+    )
     sys.exit(0 if all_ok else 1)
 
 
