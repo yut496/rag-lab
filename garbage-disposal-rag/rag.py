@@ -53,7 +53,7 @@ URL_CATEGORY = {
 SOURCES = sorted(URL_CATEGORY)
 
 EMB_MODEL = "intfloat/multilingual-e5-base"  # JA特化なら cl-nagoya/ruri-base に差替 (prefix方式が異なる点に注意)
-INDEX_PATH = "ota_index.npz"
+INDEX_PATH = "index.npz"
 MAX_CHARS = 700          # セクションが長い場合の分割上限
 SCORE_FLOOR = 0.78       # これ未満なら棄却 (e5正規化cos。要校正)
 TOP_K = 4

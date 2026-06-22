@@ -39,12 +39,12 @@ uv run python test.py llm      # LLM（Claude）のみ
 ### パイプライン（後続フェーズ）
 
 ```bash
-uv run python rag.py ingest          # HTML取得→チャンク→埋め込み→ota_index.npz
+uv run python rag.py ingest          # HTML取得→チャンク→埋め込み→index.npz
 uv run python rag.py eval            # 内蔵ゴールドセットで retrieval/棄却を確認
 uv run python rag.py ask "粗大ごみの申込方法は?"
 ```
 
-> 注: `ingest` / `eval` / `ask` は索引 `ota_index.npz` を前提とする（Phase 1 では未生成）。
+> 注: `ingest` / `eval` / `ask` は索引 `index.npz` を前提とする（Phase 1 では未生成）。
 
 ## Definition of Done（全項目が二値で「済」になったら完了）
 
