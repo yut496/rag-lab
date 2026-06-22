@@ -100,7 +100,7 @@ category がページ見出し（リンクテキスト）の流用で **汚染**
 - `index.npz` を再生成し取得日を再記録。無作為20件は `chunks_sample_v2.txt` にダンプ（category 正規化の目視用）。
 
 ### category 集計（再生成 2026-06-21）
-`uv run python rag.py ingest` の出力。**全86チャンクが7カテゴリ内・7値以外は 0**（ログ末尾 `[ingest] OK: 全チャンクが7カテゴリ内`）。
+`uv run python rag.py update-index` の出力。**全86チャンクが7カテゴリ内・7値以外は 0**（ログ末尾 `[ingest] OK: 全チャンクが7カテゴリ内`）。
 
 | category | chunks |
 |---|---|

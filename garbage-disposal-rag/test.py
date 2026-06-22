@@ -1,19 +1,17 @@
 """疎通確認スクリプト（smoke tests）— 埋め込みと LLM をまとめて確認する。
 
-  uv run python test.py          # 両方
-  uv run python test.py embed    # 埋め込みのみ
-  uv run python test.py llm      # LLM のみ
+uv run python test.py          # 両方
+uv run python test.py embed    # 埋め込みのみ
+uv run python test.py llm      # LLM のみ
 """
 
 import sys
 
 import numpy as np
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 
-from rag import LLM_MODEL, call_llm
+from rag import EMB_MODEL, LLM_MODEL, generate, embed
 
-EMB_MODEL = "intfloat/multilingual-e5-base"
 SMOKE_SENTENCES = [
     "粗大ごみの出し方",
     "大型ごみの申込方法",
@@ -26,13 +24,10 @@ def embed_smoke():
 
     期待: 「粗大ごみ ⇄ 大型ごみ」 > 「粗大ごみ ⇄ 可燃ごみの収集日」。
     """
-    model = SentenceTransformer(EMB_MODEL)
-    # e5 のプレフィックスは、文どうしの対称的な意味類似を見るため全文 query: で統一。
-    vecs = np.asarray(model.encode(
-        [f"query: {s}" for s in SMOKE_SENTENCES],
-        normalize_embeddings=True,
-    ))
-    sim = vecs @ vecs.T   # 正規化済みなので内積 = cos類似度
+    # 埋め込みは rag.embed を使う（モデルロード/prefix/正規化は rag 側）。
+    # 文どうしの対称的な意味類似を見るため、全文を "query" 種別で統一する。
+    vecs = np.asarray(embed(SMOKE_SENTENCES, "query"))
+    sim = vecs @ vecs.T  # 正規化済みなので内積 = cos類似度
 
     print(f"[embed_smoke] model: {EMB_MODEL}")
     for i, s in enumerate(SMOKE_SENTENCES):
@@ -48,12 +43,12 @@ def embed_smoke():
 
 
 def llm_smoke():
-    """call_llm に "test" を渡し、非空のテキスト応答が返ることを確認する。
+    """generate に "test" を渡し、非空のテキスト応答が返ることを確認する。
 
     キーは export せず、リポジトリ直下の .env から読む（python-dotenv）。
     """
-    load_dotenv()   # cwd〜親をたどり rag-lab/.env を読む（os.environ に注入）
-    out = call_llm("test")
+    load_dotenv()  # cwd〜親をたどり rag-lab/.env を読む（os.environ に注入）
+    out = generate("test")
     print(f"[llm_smoke] model: {LLM_MODEL}")
     print(f"[llm_smoke] response: {out!r}")
     ok = isinstance(out, str) and bool(out.strip())
