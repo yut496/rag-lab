@@ -8,3 +8,7 @@ corpus_date.txt
 # ゴールデンセット本体（手作業作成・ideal_answer に大田区FAQ本文を含むため再配布回避）。
 # 雛形 goldenset_template.json はスクレイプを含まないため別途コミットする。
 goldenset.json
+
+# Phase 4 観測ログ（top_k本文・生成回答＝スクレイプ派生。再配布回避でコミットしない）。
+# observation_summary.md は本文を含まない設計のため別途コミットする。
+observation_log.jsonl
