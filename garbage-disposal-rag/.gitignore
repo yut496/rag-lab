@@ -1,7 +1,7 @@
 # ingest が生成する成果物（大田区サイトのスクレイプ内容・バイナリ索引）。
 # 再配布を避けるためコミットしない。手元での観察用。
-index.npz
-chunks_dump.txt
+index*.npz
+chunks_dump*.txt
 chunks_sample*.txt
 corpus_date.txt
 
@@ -11,4 +11,4 @@ goldenset.json
 
 # Phase 4 観測ログ（top_k本文・生成回答＝スクレイプ派生。再配布回避でコミットしない）。
 # observation_summary.md は本文を含まない設計のため別途コミットする。
-observation_log.jsonl
+observation_log*.jsonl
